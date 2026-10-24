@@ -20,11 +20,6 @@ class RouteDecision(BaseModel):
     reasoning: str = Field(description="Giải thích ngắn gọn trong 1 câu tại sao chọn nhánh này")
 
 def route_intent(query: str) -> tuple[RouteDecision, float]:
-    """
-    Trả về:
-    - RouteDecision: Quyết định phân loại của model
-    - latency_ms: Thời gian thực thi (mili-giây)
-    """
     schema_str = json.dumps(RouteDecision.model_json_schema(), ensure_ascii=False)
     system_prompt = f"""
     Bạn là bộ định tuyến ý định (Intent Router) chuyên nghiệp.

@@ -46,3 +46,4 @@ htmlcov/
 *.db
 *.sqlite3
 data/cache/
+data/chroma_db/
