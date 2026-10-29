@@ -78,49 +78,49 @@ llm-engineering-playbook/
 - [ ] Phân phối xác suất trong quá trình Sampling: Khi nào chỉnh `temperature = 0.0` (Code, RAG, Trích xuất dữ liệu) và khi nào chỉnh `0.7 - 0.9` (Sáng tạo).
 - [ ] Chiến lược xử lý lỗi `HTTP 429 (Rate Limit)` bằng thuật toán **Exponential Backoff**.
 
-#### 💻 Thực hành & Code (`experiments/01_basics/` & `src/core/`)
-- [ ] Khởi tạo dự án bằng `uv init` và cài đặt các gói: `groq`, `google-genai`, `openai`, `pydantic`, `tenacity`, `python-dotenv`.
-- [ ] Viết script benchmark đo thời gian phản hồi thực tế giữa `llama-3.1-8b-instant`, `llama-3.3-70b-versatile` (Groq) và `gemini-2.5-flash`.
-- [ ] Xây dựng class `UnifiedLLMClient` trong `src/core/llm_client.py`:
+#### 💻 Thực hành & Code (`experiment/01_basics/` & `src/llm_playbook/core/`)
+- [x] Khởi tạo dự án bằng `uv init` và cài đặt các gói: `groq`, `httpx`, `pydantic`, `tenacity`, `python-dotenv`, `chromadb`.
+- [x] Viết script benchmark đo thời gian phản hồi thực tế giữa `openai/gpt-oss-20b` và `openai/gpt-oss-120b` (Groq).
+- [x] Xây dựng class `UnifiedLLMClient` trong `src/llm_playbook/core/llm_client.py`:
   - Luồng chính gọi Groq API.
-  - Bọc decorator `@retry` của `tenacity` và tự động chuyển hướng (Fallback) sang Gemini API nếu Groq báo lỗi quá hạn mức RPM/TPM.
+  - Bọc decorator `@retry` của `tenacity` và tự động chuyển hướng (Fallback) khi gặp lỗi.
 
 ---
 
 ### Phase 2: Ép kiểu JSON (Structured Outputs) & Bộ định tuyến (Ngày 3 - 4)
 
 #### 📚 Lý thuyết cần nắm
-- [ ] Cơ chế **Constrained Decoding** (Giải mã có ràng buộc) giúp LLM tuân thủ 100% JSON Schema.
-- [ ] Kỹ thuật **Zero-shot** vs **Few-shot Prompting** khi định nghĩa quy tắc phân loại.
-- [ ] Các lỗ hổng **Prompt Injection** cơ bản và cách cô lập dữ liệu đầu vào của người dùng bằng thẻ phân cách (Delimiters).
+- [x] Cơ chế **Constrained Decoding** (Giải mã có ràng buộc) giúp LLM tuân thủ 100% JSON Schema.
+- [x] Kỹ thuật **Zero-shot** vs **Few-shot Prompting** khi định nghĩa quy tắc phân loại.
+- [x] Các lỗ hổng **Prompt Injection** cơ bản và cách cô lập dữ liệu đầu vào của người dùng bằng thẻ phân cách (Delimiters).
 
-#### 💻 Thực hành & Code (`experiments/02_structured_outputs/`)
-- [ ] **Bài Lab 2.1 (Data Extractor):** Xây dựng trình phân tích CV hoặc đánh giá chất lượng Code trả về đối tượng `Pydantic BaseModel` (sử dụng `response_format={"type": "json_object"}` trên Groq kết hợp `model_validate_json`).
-- [ ] **Bài Lab 2.2 (Semantic Intent Router):** Dùng `llama-3.1-8b-instant` phân loại câu hỏi người dùng vào 3 nhánh với độ trễ $< 200\text{ ms}$:
-  - `CHITCHAT`: Trả lời trực tiếp bằng model 8B.
+#### 💻 Thực hành & Code (`experiment/02_structured_outputs/`)
+- [x] **Bài Lab 2.1 (Data Extractor):** Xây dựng trình phân tích CV trả về đối tượng `Pydantic BaseModel` (sử dụng `response_format={"type": "json_object"}` trên Groq kết hợp `model_validate_json`).
+- [x] **Bài Lab 2.2 (Semantic Intent Router):** Dùng `openai/gpt-oss-20b` phân loại câu hỏi người dùng vào 3 nhánh với độ trễ thấp:
+  - `CHITCHAT`: Trả lời trực tiếp bằng model 20B.
   - `RAG_SEARCH`: Chuyển xuống pipeline truy xuất tài liệu nội bộ.
-  - `COMPLEX_REASONING`: Chuyển cho model `llama-3.3-70b-versatile` hoặc `qwen/qwen3-32b`.
+  - `COMPLEX_REASONING`: Chuyển cho model `openai/gpt-oss-120b`.
 
 ---
 
-### Phase 3: Xây dựng Hybrid RAG Pipeline với `pgvector` (Ngày 5 - 8)
+### Phase 3: Xây dựng Hybrid RAG Pipeline với `ChromaDB` & `Gemini Embedding` (Ngày 5 - 8)
 
 #### 📚 Lý thuyết cần nắm (`docs/02-rag-architecture.md`)
-- [ ] Không gian Vector (Embedding Space) và công thức đo độ tương đồng **Cosine Similarity**:
+- [x] Không gian Vector (Embedding Space) và công thức đo độ tương đồng **Cosine Similarity**:
   $$\text{similarity}(A, B) = \frac{A \cdot B}{\|A\| \|B\|}$$
-- [ ] Các chiến thuật chia nhỏ văn bản (**Chunking Strategies**): Fixed-size, Recursive Character, và Markdown Header Splitting; tầm quan trọng của `chunk_overlap` (10% - 15%).
-- [ ] Hiện tượng *"Lost in the Middle"* và lý do cần kết hợp tìm kiếm từ khóa (BM25) với tìm kiếm ngữ nghĩa (Vector Search).
+- [x] Các chiến thuật chia nhỏ văn bản (**Chunking Strategies**): Fixed-size, Recursive Character, và Markdown Header Splitting; tầm quan trọng của `chunk_overlap` (10% - 15%).
+- [x] Hiện tượng *"Lost in the Middle"* và lý do cần kết hợp tìm kiếm từ khóa (BM25) với tìm kiếm ngữ nghĩa (Vector Search).
 
-#### 💻 Thực hành & Code (`experiments/03_rag_pipeline/`)
-- [ ] Cấu hình `docker-compose.yml` để khởi chạy container `pgvector/pgvector:pg16`.
-- [ ] **Script Ingestion (`ingest.py`):**
-  - Đọc tài liệu `.md` / `.pdf` từ thư mục `data/`.
-  - Chia thành các đoạn ~500 tokens (overlap 50 tokens).
-  - Gọi **Gemini Embedding API** (`text-embedding-004`) tạo vector 768 chiều và lưu vào bảng PostgreSQL.
-- [ ] **Script Retrieval & Grounded Generation (`query.py`):**
-  - Nhúng câu hỏi của người dùng thành vector 768 chiều.
-  - Truy vấn Top 5 đoạn văn gần nhất bằng toán tử `<=>` (Cosine distance) trong `pgvector`.
-  - Đưa ngữ cảnh vào System Prompt của **Groq (`llama-3.3-70b-versatile`)** với quy tắc nghiêm ngặt: *"Chỉ trả lời dựa trên ngữ cảnh được cung cấp và bắt buộc trích dẫn nguồn theo định dạng [1], [2]"*.
+#### 💻 Thực hành & Code (`experiment/03_rag_pipeline/`)
+- [x] Cấu hình `ChromaDB PersistentClient` lưu trữ cục bộ tại `./data/chroma_db`.
+- [x] **Script Ingestion (`01_chroma_basic.py`):**
+  - Đọc tài liệu `.md` từ thư mục `data/company_policy.md`.
+  - Chia đoạn theo tiêu đề Markdown (`## `).
+  - Gọi **Gemini Embedding API** (`models/gemini-embedding-2`) tạo vector 3072 chiều và lưu vào ChromaDB.
+- [x] **Script Retrieval & Grounded Generation (`02_query_rag.py`):**
+  - Nhúng câu hỏi của người dùng thành vector 3072 chiều.
+  - Truy vấn Top đoạn văn gần nhất trong `ChromaDB`.
+  - Đưa ngữ cảnh vào System Prompt của **Groq** với quy tắc nghiêm ngặt: *"Chỉ trả lời dựa trên ngữ cảnh được cung cấp và bắt buộc trích dẫn nguồn theo định dạng [1], [2]"*.
 
 ---
 

@@ -33,7 +33,7 @@ def extract_candidate_info(raw_text: str) -> CandidateProfile:
     {schema_str}
     """
 
-    stream = client.chat.completions.create(
+    response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -42,7 +42,7 @@ def extract_candidate_info(raw_text: str) -> CandidateProfile:
         response_format={"type":"json_object"}
     )
 
-    raw_json = stream.choices[0].message.content
+    raw_json = response.choices[0].message.content
     return CandidateProfile.model_validate_json(raw_json)
 
 if __name__ == "__main__":

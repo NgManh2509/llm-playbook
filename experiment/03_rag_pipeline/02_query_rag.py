@@ -1,60 +1,37 @@
-import os
 import chromadb
 from dotenv import load_dotenv
 from groq import Groq
-from typing import List
-import httpx
-
-class GeminiEmbeddingFunction(chromadb.EmbeddingFunction):
-    def __init__(self, api_key: str, model_name: str = "models/gemini-embedding-2"):
-        self.api_key = api_key
-        self.model_name = model_name
-        self.url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:batchEmbedContents?key={self.api_key}"
-
-    def __call__(self, input: list[str]) -> list[list[float]]:
-        payload = {
-            "requests": [
-                {
-                    "model": self.model_name,
-                    "content": {
-                        "parts": [{"text": text}]
-                    }
-                }
-                for text in input
-            ]
-        }
-        res = httpx.post(self.url, json=payload, timeout=30.0).json()
-        if "embeddings" not in res:
-            raise ValueError(f"Lỗi từ Gemini API: {res}")
-        return [item["values"] for item in res["embeddings"]]
+from llm_playbook.core.embeddings import GeminiEmbeddingFunction
 
 load_dotenv()
 client = Groq()
 chroma_client = chromadb.PersistentClient(path="./data/chroma_db")
 collection = chroma_client.get_collection(
     name="policies_gemini",
-    embedding_function=GeminiEmbeddingFunction(api_key=os.getenv("GEMINI_API_KEY"))
+    embedding_function=GeminiEmbeddingFunction(),
 )
 
-def retrive_context(query: str, top_k: int = 2) -> tuple[str, List[str]]:
+
+def retrieve_context(query: str, top_k: int = 2) -> tuple[str, list[str]]:
     res = collection.query(n_results=top_k, query_texts=[query])
 
     context = []
     sources = []
 
-    docs = res['documents'][0]
-    metadatas = res['metadatas'][0]
+    docs = res["documents"][0]
+    metadatas = res["metadatas"][0]
 
-    for i, (doc, metadatas) in enumerate(zip(docs, metadatas), start=1):
-        section_name = metadatas.get("section", f"Mục {i}")
+    for i, (doc, meta) in enumerate(zip(docs, metadatas), start=1):
+        section_name = meta.get("section", f"Mục {i}")
         context.append(f"[{i}] ({section_name}):\n{doc}")
         sources.append(section_name)
 
-    context_str =  "\n\n".join(context)
+    context_str = "\n\n".join(context)
     return context_str, sources
 
+
 def ask(query: str) -> str:
-    context_str, src = retrive_context(query)
+    context_str, _ = retrieve_context(query)
     system_prompt = f"""Bạn là Trợ lý AI Chuyên viên Nhân sự nội bộ của công ty.
     Nhiệm vụ của bạn là giải đáp thắc mắc của nhân viên dựa trên các đoạn tài liệu được cung cấp dưới đây.
     TÀI LIỆU QUY CHẾ ĐƯỢC CẤP:
@@ -72,16 +49,17 @@ def ask(query: str) -> str:
     res = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=[
-            {"role" : "system", "content" : system_prompt},
-            {"role" : "user", "content" : query}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
         ],
-        temperature=0.0
+        temperature=0.0,
     )
     return res.choices[0].message.content
 
 
 if __name__ == "__main__":
     import sys
+
     if sys.platform == "win32":
         sys.stdout.reconfigure(encoding="utf-8")
 
